@@ -1,11 +1,19 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show ChangeNotifier, kIsWeb;
 import '../models/transaction_model.dart';
 import '../services/db_service.dart';
+import '../services/db_service_mock.dart';
 
 class TransactionProvider extends ChangeNotifier {
-  final DbService _db = DbService();
+  late final dynamic _db;
 
-  // estado interno
+  TransactionProvider() {
+    if (kIsWeb) {
+      _db = DbServiceMock();
+    } else {
+      _db = DbService();
+    }
+  }
+
   List<TransactionModel> _currentMonthTransactions = [];
   double _totalIncome = 0.0;
   double _totalExpense = 0.0;
@@ -20,7 +28,7 @@ class TransactionProvider extends ChangeNotifier {
   Map<String, double> get expenseByCategory => _expenseByCategory;
   DateTime get selectedMonth => _selectedMonth;
 
-  // Carrega dados iniciais (chamar isso no init do app)
+  // carregar dados do mês
   Future<void> loadMonth([DateTime? month]) async {
     if (month != null) {
       _selectedMonth = month;
@@ -37,26 +45,22 @@ class TransactionProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // adicionar transação
   Future<void> addTransaction(TransactionModel tx) async {
     await _db.insertTransaction(tx);
-    await loadMonth(_selectedMonth); // recarrega estado
+    await loadMonth(_selectedMonth);
   }
 
-  // editar transação
   Future<void> editTransaction(TransactionModel tx) async {
     if (tx.id == null) return;
     await _db.updateTransaction(tx);
     await loadMonth(_selectedMonth);
   }
 
-  // deletar transação
   Future<void> deleteTransaction(int id) async {
     await _db.deleteTransaction(id);
     await loadMonth(_selectedMonth);
   }
 
-  // trocar de mês (pra futuro: navegação entre meses na UI)
   Future<void> changeMonth(DateTime newMonth) async {
     await loadMonth(newMonth);
   }
