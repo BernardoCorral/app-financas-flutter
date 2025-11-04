@@ -87,8 +87,9 @@ class TransactionsListScreen extends StatelessWidget {
                               .deleteTransaction(tx.id!);
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                                content: Text('${tx.description} excluída.'),
-                                duration: const Duration(seconds: 2)),
+                              content: Text('${tx.description} excluída.'),
+                              duration: const Duration(seconds: 2),
+                            ),
                           );
                         },
                         child: TransactionTile(tx: tx, onEdit: () {}),
@@ -106,8 +107,11 @@ class _ResumoColors {
   final Color text;
   final Color bg;
   final Color border;
-  const _ResumoColors(
-      {required this.text, required this.bg, required this.border});
+  const _ResumoColors({
+    required this.text,
+    required this.bg,
+    required this.border,
+  });
 }
 
 class _ResumoCard extends StatelessWidget {
@@ -124,7 +128,7 @@ class _ResumoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 110,
+      width: 175,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: c.bg,
@@ -136,10 +140,17 @@ class _ResumoCard extends StatelessWidget {
         children: [
           Text(titulo, style: TextStyle(color: c.text)),
           const SizedBox(height: 5),
-          Text(
-            formatCurrency(valor, context),
-            style: TextStyle(
-                color: c.text, fontWeight: FontWeight.bold, fontSize: 16),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              formatCurrency(valor, context),
+              style: TextStyle(
+                color: c.text,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
           ),
         ],
       ),

@@ -10,8 +10,6 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<TransactionProvider>();
-    final saldo = provider.balance;
-    final receitas = provider.totalIncome;
     final despesas = provider.totalExpense;
     final gastosPorCategoria = provider.expenseByCategory;
 
@@ -171,7 +169,7 @@ class _ResumoCard extends StatelessWidget {
     }[kind]!;
 
     return Container(
-      width: 110,
+      width: 175,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: bg,
@@ -185,12 +183,17 @@ class _ResumoCard extends StatelessWidget {
         children: [
           Text(titulo, style: TextStyle(color: colorMap[kind]!)),
           const SizedBox(height: 5),
-          Text(
-            formatCurrency(valor, context),
-            style: TextStyle(
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              formatCurrency(valor, context),
+              style: TextStyle(
                 color: colorMap[kind]!,
                 fontWeight: FontWeight.bold,
-                fontSize: 16),
+                fontSize: 16,
+              ),
+            ),
           ),
         ],
       ),
