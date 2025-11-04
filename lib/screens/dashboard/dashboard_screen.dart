@@ -15,22 +15,33 @@ class DashboardScreen extends StatelessWidget {
     final despesas = provider.totalExpense;
     final gastosPorCategoria = provider.expenseByCategory;
 
-    // (Lógica das cores e 'sections' do gráfico - sem alteração)
-    final List<Color> chartColors = [
-      Colors.blue,
-      Colors.red,
-      Colors.green,
-      Colors.orange,
-      Colors.purple,
-      Colors.brown,
-      Colors.teal,
-      Colors.pink,
-    ];
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final List<Color> chartColors = isDark
+        ? [
+            const Color(0xFF81C784),
+            const Color(0xFF64B5F6),
+            const Color(0xFFE57373),
+            const Color(0xFFFFB74D),
+            const Color(0xFFBA68C8),
+            const Color(0xFF4DB6AC),
+            const Color(0xFFA1887F),
+            const Color(0xFFF06292),
+          ]
+        : [
+            Colors.blue,
+            Colors.red,
+            Colors.green,
+            Colors.orange,
+            Colors.purple,
+            Colors.brown,
+            Colors.teal,
+            Colors.pink,
+          ];
 
     final List<PieChartSectionData> sections =
         gastosPorCategoria.entries.toList().asMap().entries.map((entry) {
       final index = entry.key;
-      final categoria = entry.value.key;
       final valor = entry.value.value;
       final percentual = despesas > 0 ? (valor / despesas) * 100 : 0.0;
 
@@ -54,39 +65,21 @@ class DashboardScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
+          const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _ResumoCard(
-                titulo: 'Saldo',
-                valor: saldo,
-                corTexto: Colors.blue.shade700,
-                corFundo: Colors.blue.shade50,
-              ),
-              _ResumoCard(
-                titulo: 'Receitas',
-                valor: receitas,
-                corTexto: Colors.green.shade700,
-                corFundo: Colors.green.shade50,
-              ),
-              _ResumoCard(
-                titulo: 'Despesas',
-                valor: despesas,
-                corTexto: Colors.red.shade700,
-                corFundo: Colors.red.shade50,
-              ),
+              _ResumoCard(kind: _ResumoKind.saldo),
+              _ResumoCard(kind: _ResumoKind.receitas),
+              _ResumoCard(kind: _ResumoKind.despesas),
             ],
           ),
           const Divider(height: 24),
-
-          const Text(
-            'Gastos por Categoria',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
+          const Text('Gastos por Categoria',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
           Card(
             elevation: 0,
-            color: Colors.white,
+            color: Theme.of(context).cardColor,
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -95,10 +88,8 @@ class DashboardScreen extends StatelessWidget {
                     const AspectRatio(
                       aspectRatio: 1.5,
                       child: Center(
-                        child: Text(
-                          'Sem dados de despesas para exibir.',
-                          style: TextStyle(color: Colors.grey),
-                        ),
+                        child: Text('Sem dados de despesas para exibir.',
+                            style: TextStyle(color: Colors.grey)),
                       ),
                     )
                   else
@@ -112,7 +103,6 @@ class DashboardScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                  
                   if (sections.isNotEmpty) ...[
                     const SizedBox(height: 20),
                     Wrap(
@@ -128,7 +118,8 @@ class DashboardScreen extends StatelessWidget {
                         final valor = entry.value.value;
                         return _LegendaItem(
                           color: chartColors[index % chartColors.length],
-                          texto: '$categoria (${formatCurrency(valor)})',
+                          texto:
+                              '$categoria (${formatCurrency(valor, context)})',
                         );
                       }).toList(),
                     ),
@@ -143,49 +134,69 @@ class DashboardScreen extends StatelessWidget {
   }
 }
 
-class _ResumoCard extends StatelessWidget {
-  final String titulo;
-  final double valor;
-  final Color corTexto;
-  final Color corFundo;
+enum _ResumoKind { saldo, receitas, despesas }
 
-  const _ResumoCard({
-    required this.titulo,
-    required this.valor,
-    required this.corTexto,
-    required this.corFundo,
-  });
+class _ResumoCard extends StatelessWidget {
+  final _ResumoKind kind;
+  const _ResumoCard({required this.kind});
 
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<TransactionProvider>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final colorMap = {
+      _ResumoKind.saldo: isDark ? Colors.white : Colors.blue.shade700,
+      _ResumoKind.receitas: isDark ? Colors.white : Colors.green.shade700,
+      _ResumoKind.despesas: isDark ? Colors.white : Colors.red.shade700,
+    };
+    final bg = isDark
+        ? const Color(0xFF1A1C1E)
+        : {
+            _ResumoKind.saldo: Colors.blue.shade50,
+            _ResumoKind.receitas: Colors.green.shade50,
+            _ResumoKind.despesas: Colors.red.shade50,
+          }[kind]!;
+
+    final titulo = {
+      _ResumoKind.saldo: 'Saldo',
+      _ResumoKind.receitas: 'Receitas',
+      _ResumoKind.despesas: 'Despesas',
+    }[kind]!;
+
+    final valor = {
+      _ResumoKind.saldo: provider.balance,
+      _ResumoKind.receitas: provider.totalIncome,
+      _ResumoKind.despesas: provider.totalExpense,
+    }[kind]!;
+
     return Container(
       width: 110,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: corFundo,
+        color: bg,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: corTexto.withOpacity(0.2)),
+        border: Border.all(
+          color: isDark ? Colors.white10 : colorMap[kind]!.withOpacity(0.2),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(titulo, style: TextStyle(color: corTexto)),
+          Text(titulo, style: TextStyle(color: colorMap[kind]!)),
           const SizedBox(height: 5),
           Text(
-            formatCurrency(valor),
+            formatCurrency(valor, context),
             style: TextStyle(
-              color: corTexto,
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
+                color: colorMap[kind]!,
+                fontWeight: FontWeight.bold,
+                fontSize: 16),
           ),
         ],
       ),
     );
   }
 }
-
-
 
 class _LegendaItem extends StatelessWidget {
   final Color color;
@@ -199,13 +210,9 @@ class _LegendaItem extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
-        ),
+            width: 12,
+            height: 12,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
         const SizedBox(width: 6),
         Text(texto),
       ],

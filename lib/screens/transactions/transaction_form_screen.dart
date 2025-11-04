@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-
 import '../../models/transaction_model.dart';
 import '../../providers/transaction_provider.dart';
+import '../../providers/settings_provider.dart';
+import '../../utils/formatters.dart';
 
 class TransactionFormScreen extends StatefulWidget {
   const TransactionFormScreen({super.key});
@@ -15,13 +16,12 @@ class TransactionFormScreen extends StatefulWidget {
 class _TransactionFormScreenState extends State<TransactionFormScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  String _type = "despesa"; // ou "receita"
+  String _type = "despesa";
   final _valueController = TextEditingController();
   final _descriptionController = TextEditingController();
   String _category = "Alimentação";
   DateTime _date = DateTime.now();
 
-  // essa lista pode virar dinâmica depois, mas fixa já resolve pra apresentação
   final List<String> _categories = [
     "Alimentação",
     "Transporte",
@@ -67,17 +67,18 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
       date: _date,
     );
 
-    // salva no provider (isso escreve no banco e recarrega a lista)
     await context.read<TransactionProvider>().addTransaction(newTx);
 
     if (mounted) {
-      Navigator.pop(context); // volta pra tela anterior
+      Navigator.pop(context);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    context.watch<SettingsProvider>(); // re-render em alterações de settings
     final isDespesa = _type == "despesa";
+    final symbol = currencySymbol(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -93,7 +94,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Tipo: despesa/receita
               const Text(
                 "Tipo",
                 style: TextStyle(fontWeight: FontWeight.w500),
@@ -125,15 +125,13 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                 ],
               ),
               const SizedBox(height: 16),
-
-              // Valor
               TextFormField(
                 controller: _valueController,
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
                 decoration: InputDecoration(
                   labelText: "Valor",
-                  prefixText: isDespesa ? "- R\$ " : "+ R\$ ",
+                  prefixText: isDespesa ? "- $symbol " : "+ $symbol ",
                   border: const OutlineInputBorder(),
                 ),
                 validator: (text) {
@@ -148,8 +146,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                 },
               ),
               const SizedBox(height: 16),
-
-              // Descrição
               TextFormField(
                 controller: _descriptionController,
                 textInputAction: TextInputAction.next,
@@ -166,21 +162,15 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                 },
               ),
               const SizedBox(height: 16),
-
-              // Categoria
               DropdownButtonFormField<String>(
-                value: _category,
+                initialValue: _category,
                 decoration: const InputDecoration(
                   labelText: "Categoria",
                   border: OutlineInputBorder(),
                 ),
                 items: _categories
                     .map(
-                      (cat) => DropdownMenuItem(
-                        value: cat,
-                        child: Text(cat),
-                      ),
-                    )
+                        (cat) => DropdownMenuItem(value: cat, child: Text(cat)))
                     .toList(),
                 onChanged: (value) {
                   if (value != null) {
@@ -191,8 +181,6 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                 },
               ),
               const SizedBox(height: 16),
-
-              // Data
               InkWell(
                 onTap: _selectDate,
                 borderRadius: BorderRadius.circular(8),
@@ -204,17 +192,13 @@ class _TransactionFormScreenState extends State<TransactionFormScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text("${_date.day.toString().padLeft(2, '0')}/"
-                          "${_date.month.toString().padLeft(2, '0')}/"
-                          "${_date.year}"),
+                      Text(formatDate(_date, context)),
                       const Icon(Icons.calendar_today, size: 18),
                     ],
                   ),
                 ),
               ),
               const SizedBox(height: 24),
-
-              // Botão salvar
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
